@@ -1,5 +1,7 @@
 #include <arpa/inet.h>
 #include <asio.hpp>
+#include <bit>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fmt/format.h>
@@ -34,58 +36,34 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Client connected from: " << socket.remote_endpoint() << "\n";
 
+    // 1. Read Request Size (4 bytes)
+    uint32_t request_size_raw;
+    asio::read(socket, asio::buffer(&request_size_raw, 4));
+
+    // 2. Read the rest of the message based on request_size
+    uint32_t request_size = std::byteswap(request_size_raw);
+    std::vector<uint8_t> request_body(request_size);
+    asio::read(socket, asio::buffer(request_body));
+
+    // 3. Extract Correlation ID (The ID starts at offset 4 of the body)
+    // Request Body structure: ApiKey(2) + ApiVersion(2) + CorrelationID(4)
+    uint32_t correlation_id_raw;
+    std::memcpy(&correlation_id_raw, &request_body[4], 4);
+
+    // 4. Prepare Response
+    // Response = Size(4) + CorrelationID(4)
+    uint32_t response_correlation_id = correlation_id_raw; // Already in network order from client
+    uint32_t response_body_size = std::byteswap((uint32_t)4);
+
+    // 5. Send Response
+    asio::write(socket, asio::buffer(&response_body_size, 4));
+    asio::write(socket, asio::buffer(&response_correlation_id, 4));
+
+    std::cout << "Sent response with Correlation ID\n";
+
     // Socket closes automatically when it leaves this scope!
   } catch (std::exception &e) {
     std::cerr << "Exception: " << e.what() << "\n";
   }
   return 0;
-
-  // int server_fd = socket(AF_INET, SOCK_STREAM, 0);
-  // if (server_fd < 0) {
-  //   std::cerr << "Failed to create server socket: " << std::endl;
-  //   return 1;
-  // }
-
-  // // Since the tester restarts your program quite often, setting SO_REUSEADDR
-  // // ensures that we don't run into 'Address already in use' errors
-  // int reuse = 1;
-  // if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-  //   close(server_fd);
-  //   std::cerr << "setsockopt failed: " << std::endl;
-  //   return 1;
-  // }
-
-  // struct sockaddr_in server_addr{};
-  // server_addr.sin_family = AF_INET;
-  // server_addr.sin_addr.s_addr = INADDR_ANY;
-  // server_addr.sin_port = htons(9092);
-
-  // if (bind(server_fd, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr)) != 0) {
-  //   close(server_fd);
-  //   std::cerr << "Failed to bind to port 9092" << std::endl;
-  //   return 1;
-  // }
-
-  // int connection_backlog = 5;
-  // if (listen(server_fd, connection_backlog) != 0) {
-  //   close(server_fd);
-  //   std::cerr << "listen failed" << std::endl;
-  //   return 1;
-  // }
-
-  // std::cout << "Waiting for a client to connect...\n";
-
-  // struct sockaddr_in client_addr{};
-  // socklen_t client_addr_len = sizeof(client_addr);
-
-  // // You can use print statements as follows for debugging, they'll be visible
-  // // when running tests.
-  // std::cerr << "Logs from your program will appear here!\n";
-
-  // int client_fd = accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr), &client_addr_len);
-  // std::cout << "Client connected\n";
-  // close(client_fd);
-
-  // close(server_fd);
-  // return 0;
 }
