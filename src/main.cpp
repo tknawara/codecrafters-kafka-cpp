@@ -1,6 +1,7 @@
 #include <arpa/inet.h>
 #include <cstdlib>
 #include <cstring>
+#include <fmt/format.h>
 #include <iostream>
 #include <netdb.h>
 #include <string>
@@ -22,8 +23,7 @@ int main(int argc, char *argv[]) {
   // Since the tester restarts your program quite often, setting SO_REUSEADDR
   // ensures that we don't run into 'Address already in use' errors
   int reuse = 1;
-  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) <
-      0) {
+  if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
     close(server_fd);
     std::cerr << "setsockopt failed: " << std::endl;
     return 1;
@@ -34,8 +34,7 @@ int main(int argc, char *argv[]) {
   server_addr.sin_addr.s_addr = INADDR_ANY;
   server_addr.sin_port = htons(9092);
 
-  if (bind(server_fd, reinterpret_cast<struct sockaddr *>(&server_addr),
-           sizeof(server_addr)) != 0) {
+  if (bind(server_fd, reinterpret_cast<struct sockaddr *>(&server_addr), sizeof(server_addr)) != 0) {
     close(server_fd);
     std::cerr << "Failed to bind to port 9092" << std::endl;
     return 1;
@@ -57,9 +56,7 @@ int main(int argc, char *argv[]) {
   // when running tests.
   std::cerr << "Logs from your program will appear here!\n";
 
-  int client_fd =
-      accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr),
-             &client_addr_len);
+  int client_fd = accept(server_fd, reinterpret_cast<struct sockaddr *>(&client_addr), &client_addr_len);
   std::cout << "Client connected\n";
   close(client_fd);
 

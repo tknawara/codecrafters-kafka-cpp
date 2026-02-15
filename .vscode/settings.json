@@ -1,18 +1,7 @@
 {
-    "editor.tabSize": 2,
-    "editor.insertSpaces": true,
-    "editor.detectIndentation": false,
-    "C_Cpp.clang_format_style": "LLVM",
-    "C_Cpp.clang_format_fallbackStyle": "LLVM",
-    "C_Cpp.default.cppStandard": "c++23",
-    "editor.formatOnSave": true,
-    "editor.defaultFormatter": "ms-vscode.cpptools",
-    "[cpp]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true
-    },
-    "[c]": {
-        "editor.tabSize": 2,
-        "editor.insertSpaces": true
-    }
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "cmake.configureOnOpen": true,
+  "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
 }
