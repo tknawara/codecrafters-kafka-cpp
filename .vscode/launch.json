@@ -5,7 +5,7 @@
             "name": "Debug Kafka Broker",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/kafka_broker", // Change this to your binary name
+            "program": "${workspaceFolder}/build/kafka", // Change this to your binary name
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
