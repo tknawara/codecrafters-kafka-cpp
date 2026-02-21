@@ -1,23 +1,19 @@
-#include <bit>
-#include <cstring>
-
 #include "request.hpp"
+#include "reader.hpp"
 
 kafka::request::Request kafka::request::from_bytes(uint32_t message_size,
                                                    std::vector<uint8_t> raw) {
-  uint16_t api_raw;
-  uint16_t version_raw;
-  uint32_t correlation_id_raw;
 
-  std::memcpy(&api_raw, &raw[0], 2);
-  std::memcpy(&version_raw, &raw[2], 2);
-  std::memcpy(&correlation_id_raw, &raw[4], 4);
+  size_t offset = 0;
 
-  Header header{.api = static_cast<KafkaApi>(std::byteswap(api_raw)),
-                .version = std::byteswap(version_raw),
-                .correlation_id = std::byteswap(correlation_id_raw)};
+  auto api_raw = reader::read_be<uint16_t>(raw, offset);
+  auto api_key = static_cast<KafkaApi>(api_raw);
+  auto api_version = reader::read_be<uint16_t>(raw, offset);
+  auto correlation_id = reader::read_be<uint32_t>(raw, offset);
 
-  raw.erase(raw.begin(), raw.begin() + 8);
+  Header header{api_key, api_version, correlation_id};
+
+  raw.erase(raw.begin(), raw.begin() + offset);
 
   Request request{message_size, header, raw};
   return request;
