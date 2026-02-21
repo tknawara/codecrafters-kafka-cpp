@@ -52,7 +52,8 @@ int main(int argc, char *argv[]) {
 
     // 4. Prepare Response
     // Response = Size(4) + CorrelationID(4)
-    uint32_t response_correlation_id = correlation_id_raw; // Already in network order from client
+    uint32_t response_correlation_id =
+        correlation_id_raw; // Already in network order from client
     uint32_t response_body_size = std::byteswap((uint32_t)4);
 
     // 5. Send Response
