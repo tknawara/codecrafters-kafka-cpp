@@ -14,11 +14,20 @@ kafka::Handler::handle(const kafka::request::Request &request) {
 
 kafka::response::Response
 kafka::Handler::handle_api_versions(const kafka::request::Request &request) {
-  response::Response response{};
-  response.correlation_id = request.header.correlation_id;
+  response::ApiVersionsResponse body{};
+  body.error = error::ErrorCode::None;
+  body.keys.push_back({.api_key = static_cast<uint16_t>(request.header.api),
+                       .min_version = 0,
+                       .max_version = 4});
   if (!supported_version(request.header.version)) {
-    response.error = error::ErrorCode::UnsupportedVersion;
+    body.error = error::ErrorCode::UnsupportedVersion;
+    body.keys.clear();
   }
+
+  response::Response response{
+      .correlation_id = request.header.correlation_id,
+      .body = body,
+  };
   return response;
 }
 

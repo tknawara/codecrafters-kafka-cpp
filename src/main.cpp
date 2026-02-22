@@ -47,7 +47,9 @@ int main(int argc, char *argv[]) {
     auto request =
         kafka::request::from_bytes(request_size, std::move(request_body));
     auto response = handler.handle(request);
-    asio::write(socket, asio::buffer(kafka::response::serialize(response)));
+    std::vector<uint8_t> response_buffer;
+    kafka::response::serialize(response_buffer, response);
+    asio::write(socket, asio::buffer(response_buffer));
 
     std::println("Sent response with Correlation ID");
   } catch (std::exception &e) {
