@@ -1,7 +1,5 @@
 #include <arpa/inet.h>
 #include <asio.hpp>
-#include <bit>
-#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <fmt/format.h>
@@ -23,13 +21,13 @@ int main() {
   std::cout << std::unitbuf;
   std::cerr << std::unitbuf;
 
+  asio::io_context io_context;
+  tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 9092));
+  acceptor.set_option(tcp::acceptor::reuse_address(true));
+  kafka::RequestHandler request_handler{};
+
   while (true) {
     try {
-      asio::io_context io_context;
-      tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 9092));
-      acceptor.set_option(tcp::acceptor::reuse_address(true));
-      kafka::RequestHandler request_handler{};
-
       std::println("Waiting for a client to connect...");
 
       tcp::socket socket(io_context);
