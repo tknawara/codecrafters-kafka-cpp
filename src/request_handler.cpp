@@ -1,9 +1,9 @@
-#include "handler.hpp"
+#include "request_handler.hpp"
 
 #include <stdexcept>
 
 kafka::response::Response
-kafka::Handler::handle(const kafka::request::Request &request) {
+kafka::RequestHandler::handle(const kafka::request::Request &request) {
   switch (request.header.api) {
   case kafka::request::KafkaApi::ApiVersions:
     return handle_api_versions(request);
@@ -12,8 +12,8 @@ kafka::Handler::handle(const kafka::request::Request &request) {
   }
 }
 
-kafka::response::Response
-kafka::Handler::handle_api_versions(const kafka::request::Request &request) {
+kafka::response::Response kafka::RequestHandler::handle_api_versions(
+    const kafka::request::Request &request) {
   response::ApiVersionsResponse body{};
   body.error = error::ErrorCode::None;
   body.keys.push_back({.api_key = static_cast<uint16_t>(request.header.api),
@@ -31,6 +31,6 @@ kafka::Handler::handle_api_versions(const kafka::request::Request &request) {
   return response;
 }
 
-bool kafka::Handler::supported_version(uint16_t version) {
+bool kafka::RequestHandler::supported_version(uint16_t version) {
   return version >= 0 && version <= 4;
 }

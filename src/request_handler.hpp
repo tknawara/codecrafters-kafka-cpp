@@ -5,7 +5,7 @@
 
 namespace kafka {
 
-class Handler {
+class RequestHandler {
 public:
   response::Response handle(const request::Request &request);
 
