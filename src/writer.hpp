@@ -24,7 +24,7 @@ void write_compact_array(std::vector<uint8_t> &buffer,
   write_unsigned_varint(buffer, compact_length);
 
   for (const auto &item : items) {
-    serialize(buffer, item);
+    Serializer<S>::serialize(buffer, item);
     buffer.push_back(0);
   }
 }

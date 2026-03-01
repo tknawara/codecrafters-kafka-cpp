@@ -3,12 +3,12 @@
 #include <inttypes.h>
 #include <vector>
 
+#include "api_details.hpp"
+
 namespace kafka::request {
 
-enum class KafkaApi : uint16_t { ApiVersions = 18 };
-
 struct Header {
-  KafkaApi api;
+  api::metadata::ApiKey api;
   uint16_t version;
   uint32_t correlation_id;
 };

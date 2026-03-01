@@ -5,9 +5,11 @@
 #include <vector>
 
 namespace kafka {
+template <typename T> struct Serializer;
+
 template <typename T>
 concept Serializable = requires(std::vector<uint8_t> &buffer, const T &item) {
-  // Enforce that a free function exists and is callable
-  { serialize(buffer, item) } -> std::same_as<void>;
+  { Serializer<T>::serialize(buffer, item) } -> std::same_as<void>;
 };
-} // namespace kafka
+
+}; // namespace kafka

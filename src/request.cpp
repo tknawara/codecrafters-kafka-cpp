@@ -7,7 +7,7 @@ kafka::request::Request kafka::request::from_bytes(uint32_t message_size,
   size_t offset = 0;
 
   auto api_raw = reader::read_be<uint16_t>(raw, offset);
-  auto api_key = static_cast<KafkaApi>(api_raw);
+  auto api_key = static_cast<api::metadata::ApiKey>(api_raw);
   auto api_version = reader::read_be<uint16_t>(raw, offset);
   auto correlation_id = reader::read_be<uint32_t>(raw, offset);
 

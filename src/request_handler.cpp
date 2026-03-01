@@ -2,29 +2,31 @@
 
 #include <stdexcept>
 
-kafka::response::Response
-kafka::RequestHandler::handle(const kafka::request::Request &request) {
+#include "api_details.hpp"
+
+auto kafka::RequestHandler::handle(const kafka::request::Request &request)
+    -> api::dto::Response {
   switch (request.header.api) {
-  case kafka::request::KafkaApi::ApiVersions:
+  case kafka::api::metadata::ApiKey::ApiVersions:
     return handle_api_versions(request);
   default:
     throw std::invalid_argument("unsupported api");
   }
 }
 
-kafka::response::Response kafka::RequestHandler::handle_api_versions(
-    const kafka::request::Request &request) {
-  response::ApiVersionsResponse body{};
+auto kafka::RequestHandler::handle_api_versions(
+    const kafka::request::Request &request) -> api::dto::Response {
+  api::dto::ApiVersionsResponse body{};
   body.error = error::ErrorCode::None;
-  body.keys.push_back({.api_key = static_cast<uint16_t>(request.header.api),
-                       .min_version = 0,
-                       .max_version = 4});
+  for (const auto api_detail : api::metadata::get_all_api_details()) {
+    body.keys.push_back(api_detail);
+  }
   if (!supported_version(request.header.version)) {
     body.error = error::ErrorCode::UnsupportedVersion;
     body.keys.clear();
   }
 
-  response::Response response{
+  api::dto::Response response{
       .correlation_id = request.header.correlation_id,
       .body = body,
   };
