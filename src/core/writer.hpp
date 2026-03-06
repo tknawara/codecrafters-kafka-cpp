@@ -3,13 +3,16 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <vector>
 
-#include "serializable.hpp"
+#include "core/serializable.hpp"
 
 namespace kafka::writer {
 
 void write_unsigned_varint(std::vector<uint8_t> &buffer, uint32_t value);
+void write_compact_string(std::vector<uint8_t> &buffer,
+                          const std::string &text);
 
 template <typename T> void write_be(std::vector<uint8_t> &buffer, T value) {
   T swapped_value = std::byteswap(value);
@@ -25,7 +28,6 @@ void write_compact_array(std::vector<uint8_t> &buffer,
 
   for (const auto &item : items) {
     Serializer<S>::serialize(buffer, item);
-    buffer.push_back(0);
   }
 }
 

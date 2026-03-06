@@ -1,6 +1,6 @@
 #include "client_session.hpp"
 
-#include "request.hpp"
+#include "api/dto/request.hpp"
 #include <iostream>
 #include <print>
 
@@ -28,11 +28,13 @@ void kafka::ClientSession::handle_connection() {
       break;
     }
 
+    size_t offset = 0;
     auto request =
-        kafka::request::from_bytes(request_size, std::move(request_body));
+        Deserializer<api::dto::Request>::deserialize(request_body, offset);
+    request.message_size = request_size;
     auto response = request_handler_.handle(request);
     std::vector<uint8_t> response_buffer;
-    kafka::Serializer<api::dto::Response>::serialize(response_buffer, response);
+    Serializer<api::dto::Response>::serialize(response_buffer, response);
     asio::write(client_socket_, asio::buffer(response_buffer), error_code);
 
     if (error_code) {

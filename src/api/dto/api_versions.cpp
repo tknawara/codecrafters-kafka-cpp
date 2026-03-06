@@ -1,8 +1,8 @@
-#include "api_details.hpp"
+#include "api_versions.hpp"
 
 #include <algorithm>
 
-auto kafka::api::metadata::get_api_details(uint16_t raw_key)
+auto kafka::api::dto::get_api_details(uint16_t raw_key)
     -> std::optional<ApiDetails> {
   auto match =
       std::ranges::find_if(supported_apis, [raw_key](const ApiDetails &api) {
@@ -16,6 +16,6 @@ auto kafka::api::metadata::get_api_details(uint16_t raw_key)
   return std::nullopt;
 }
 
-auto kafka::api::metadata::get_all_api_details() -> std::vector<ApiDetails> {
+auto kafka::api::dto::get_all_api_details() -> std::vector<ApiDetails> {
   return std::vector<ApiDetails>(supported_apis.begin(), supported_apis.end());
 }
