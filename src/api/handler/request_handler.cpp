@@ -49,17 +49,44 @@ auto kafka::RequestHandler::handle_describe_topic_partitions(
   res_body.next_cursor = -1;
 
   for (const auto &req_topic : req_body.topics) {
-    api::dto::DescribeTopicPartitionsResponseTopic res_topic{};
+    api::dto::DescribeTopicPartitionsResponseTopic res_topic;
+    res_topic.name = req_topic.name;
 
-    res_topic.name = req_topic.topic_name;
+    // 1. Query our new cache!
+    auto topic_opt = cache_.get_topic(req_topic.name);
 
-    res_topic.error_code = 3;
+    if (topic_opt) {
+      // --- TOPIC EXISTS (Stage 7 Logic) ---
+      res_topic.error_code = 0; // 0 = No error
+      res_topic.topic_id = topic_opt->topic_id;
+      res_topic.is_internal = false;
 
-    // Defaults from our DTO:
-    // is_internal = false
-    // topic_authorized_operations = 0x00000df8
-    // topic_id = 16 empty bytes
-    // partitions = empty array
+      // Fetch partitions using the UUID
+      auto partitions = cache_.get_partitions(res_topic.topic_id);
+
+      for (const auto &p : partitions) {
+        api::dto::DescribeTopicPartitionsResponsePartition res_partition;
+        res_partition.error_code = 0;
+        res_partition.partition_index = p.partition_id;
+        res_partition.leader_id = p.leader;
+        res_partition.leader_epoch = p.leader_epoch;
+
+        // Map the broker node arrays
+        res_partition.replica_nodes = p.replicas;
+        res_partition.isr_nodes = p.isr;
+
+        // Note: eligible_leader_replicas, last_known_elr, and offline_replicas
+        // remain perfectly empty std::vectors by default, as the tester
+        // expects!
+
+        res_topic.partitions.push_back(res_partition);
+      }
+    } else {
+      // --- TOPIC DOES NOT EXIST (Stage 6 Logic) ---
+      res_topic.error_code = 3; // 3 = UNKNOWN_TOPIC_OR_PARTITION
+      res_topic.topic_id = {0}; // Fills the 16-byte array with zeros
+      res_topic.is_internal = false;
+    }
 
     res_body.topics.push_back(res_topic);
   }

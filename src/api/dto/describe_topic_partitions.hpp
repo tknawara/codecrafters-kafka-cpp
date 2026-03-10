@@ -12,11 +12,23 @@
 
 namespace kafka::api::dto {
 struct DescribeTopicPartitionsRequestTopic {
-  std::string topic_name;
+  std::string name;
 };
 
 struct DescribeTopicPartitionsRequest {
   std::vector<DescribeTopicPartitionsRequestTopic> topics;
+};
+
+struct DescribeTopicPartitionsResponsePartition {
+  int16_t error_code{0};
+  int32_t partition_index{0};
+  int32_t leader_id{0};
+  int32_t leader_epoch{0};
+  std::vector<int32_t> replica_nodes;
+  std::vector<int32_t> isr_nodes;
+  std::vector<int32_t> eligible_leader_replicas;
+  std::vector<int32_t> last_known_elr;
+  std::vector<int32_t> offline_replicas;
 };
 
 struct DescribeTopicPartitionsResponseTopic {
@@ -24,7 +36,7 @@ struct DescribeTopicPartitionsResponseTopic {
   std::string name;
   std::array<uint8_t, 16> topic_id;
   bool is_internal{false};
-  std::vector<int32_t> partitions{};
+  std::vector<DescribeTopicPartitionsResponsePartition> partitions{};
   int32_t topic_authorized_operations{0x00000000};
 };
 
@@ -39,6 +51,28 @@ struct DescribeTopicPartitionsResponse {
 }; // namespace kafka::api::dto
 
 namespace kafka {
+
+template <>
+struct Serializer<api::dto::DescribeTopicPartitionsResponsePartition> {
+  static void serialize(
+      std::vector<uint8_t> &buffer,
+      const api::dto::DescribeTopicPartitionsResponsePartition &partition) {
+
+    writer::write_be(buffer, partition.error_code);
+    writer::write_be(buffer, partition.partition_index);
+    writer::write_be(buffer, partition.leader_id);
+    writer::write_be(buffer, partition.leader_epoch);
+
+    writer::write_compact_array(buffer, partition.replica_nodes);
+    writer::write_compact_array(buffer, partition.isr_nodes);
+    writer::write_compact_array(buffer, partition.eligible_leader_replicas);
+    writer::write_compact_array(buffer, partition.last_known_elr);
+    writer::write_compact_array(buffer, partition.offline_replicas);
+
+    // The trailing TAG_BUFFER for the partition struct
+    buffer.push_back(0);
+  }
+};
 
 template <> struct Serializer<api::dto::DescribeTopicPartitionsResponseTopic> {
   static void
@@ -84,7 +118,7 @@ template <> struct Deserializer<api::dto::DescribeTopicPartitionsRequestTopic> {
     api::dto::DescribeTopicPartitionsRequestTopic topic;
 
     // You will need a reader::read_compact_string utility
-    topic.topic_name = reader::read_compact_string(buffer, offset);
+    topic.name = reader::read_compact_string(buffer, offset);
 
     // Skip the TAG_BUFFER (1 byte if empty)
     offset += 1;

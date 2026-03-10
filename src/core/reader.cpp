@@ -25,6 +25,16 @@ uint32_t kafka::reader::read_unsigned_varint(std::span<const uint8_t> buffer,
   throw std::out_of_range("Buffer ended before varint was fully parsed");
 }
 
+int32_t kafka::reader::read_signed_varint(std::span<const uint8_t> buffer,
+                                          size_t &offset) {
+  uint32_t raw = read_unsigned_varint(buffer, offset);
+
+  // 2. ZigZag decode: shift right by 1, and XOR with the sign bit
+  int32_t value = (raw >> 1) ^ -(raw & 1);
+
+  return value;
+}
+
 std::string kafka::reader::read_compact_string(std::span<const uint8_t> buffer,
                                                size_t &offset) {
   uint32_t compact_length = read_unsigned_varint(buffer, offset);

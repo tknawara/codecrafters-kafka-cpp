@@ -12,11 +12,12 @@
 namespace kafka::reader {
 
 uint32_t read_unsigned_varint(std::span<const uint8_t> buffer, size_t &offset);
+int32_t read_signed_varint(std::span<const uint8_t> buffer, size_t &offset);
 std::string read_compact_string(std::span<const uint8_t> buffer,
                                 size_t &offset);
 
 template <typename T>
-T read_be(std::span<const uint8_t> &buffer, size_t &offset) {
+T read_be(std::span<const uint8_t> buffer, size_t &offset) {
   T value = 0;
   std::memcpy(&value, buffer.data() + offset, sizeof(T));
   offset += sizeof(T);

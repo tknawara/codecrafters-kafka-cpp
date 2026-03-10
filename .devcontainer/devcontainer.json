@@ -22,7 +22,8 @@
                 "ms-vscode.cmake-tools",
                 "ms-vscode.cpptools-extension-pack",
                 "llvm-vs-code-extensions.vscode-clangd",
-                "ms-vscode.makefile-tools"
+                "ms-vscode.makefile-tools",
+                "ms-vscode.hexeditor"
             ]
         }
     },
