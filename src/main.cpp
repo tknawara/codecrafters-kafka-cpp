@@ -28,13 +28,11 @@ int main() {
   tcp::acceptor acceptor(io_context, tcp::endpoint(tcp::v4(), 9092));
   acceptor.set_option(tcp::acceptor::reuse_address(true));
 
-  kafka::metadata::MetadataCache metadata_cache;
-
   std::string log_file_path =
       "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log";
 
-  kafka::metadata::MetadataParser::parse_log_file(log_file_path,
-                                                  metadata_cache);
+  auto metadata_cache =
+      kafka::metadata::MetadataParser::parse_log_file(log_file_path);
   kafka::RequestHandler request_handler{metadata_cache};
 
   std::ifstream log_file(

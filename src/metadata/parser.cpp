@@ -7,19 +7,20 @@
 
 #include "core/reader.hpp"
 
-void kafka::metadata::MetadataParser::parse_log_file(
-    const std::string &filepath, MetadataCache &cache) {
+auto kafka::metadata::MetadataParser::parse_log_file(
+    const std::string &filepath) -> MetadataCache {
+  MetadataCache cache;
   // 1. Read the entire file into memory
   std::ifstream file(filepath, std::ios::binary | std::ios::ate);
   if (!file) {
-    return;
+    return cache;
   }
 
   std::streamsize size = file.tellg();
   file.seekg(0, std::ios::beg);
   std::vector<uint8_t> buffer(size);
   if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
-    return;
+    return cache;
   }
 
   size_t offset = 0;

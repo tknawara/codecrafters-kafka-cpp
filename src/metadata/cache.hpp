@@ -11,13 +11,17 @@
 
 namespace kafka::metadata {
 
+class MetadataParser;
 class MetadataCache {
+  friend class MetadataParser;
+
 private:
   std::unordered_map<std::string, dto::TopicRecord> topics_by_name;
   std::map<std::array<uint8_t, 16>, std::vector<dto::PartitionRecord>>
       partitions_by_id;
 
-public:
+  MetadataCache() = default;
+
   void add_topic(const dto::TopicRecord &record) {
     topics_by_name[record.name] = record;
   }
@@ -26,6 +30,7 @@ public:
     partitions_by_id[record.topic_id].push_back(record);
   }
 
+public:
   size_t num_of_topics() const { return topics_by_name.size(); }
 
   std::optional<dto::TopicRecord> get_topic(const std::string &name) const {

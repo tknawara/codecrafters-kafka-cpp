@@ -6,7 +6,7 @@ namespace kafka::metadata {
 
 class MetadataParser {
 public:
-  static void parse_log_file(const std::string &filepath, MetadataCache &cache);
+  static auto parse_log_file(const std::string &filepath) -> MetadataCache;
 };
 
 } // namespace kafka::metadata
