@@ -36,12 +36,7 @@ template <> struct Serializer<api::dto::Response> {
     std::visit(
         [&buffer](const auto &body) {
           using BodyType = std::decay_t<decltype(body)>;
-          // Only inject the TAG_BUFFER if this specific API uses Response
-          // Header v1
-          if constexpr (std::is_same_v<
-                            BodyType,
-                            api::dto::DescribeTopicPartitionsResponse>) {
-
+          if constexpr (BodyType::header_version == 1) {
             buffer.push_back(0);
           }
           Serializer<BodyType>::serialize(buffer, body);

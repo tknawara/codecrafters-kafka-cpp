@@ -18,6 +18,8 @@ struct ApiDetails {
 };
 
 struct ApiVersionsResponse {
+  static constexpr uint8_t header_version = 0;
+
   error::ErrorCode error;
   std::vector<ApiDetails> keys;
   uint32_t throttle_time_ms;

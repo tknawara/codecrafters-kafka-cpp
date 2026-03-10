@@ -29,6 +29,8 @@ struct DescribeTopicPartitionsResponseTopic {
 };
 
 struct DescribeTopicPartitionsResponse {
+  static constexpr uint8_t header_version = 1;
+
   int32_t throttle_time_ms{0};
   std::vector<DescribeTopicPartitionsResponseTopic> topics;
   int8_t next_cursor{-1};
