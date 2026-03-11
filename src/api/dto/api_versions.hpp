@@ -28,6 +28,7 @@ struct ApiVersionsResponse {
 inline constexpr auto supported_apis = std::to_array<ApiDetails>({
     {registry::ApiKey::ApiVersions, 0, 4},
     {registry::ApiKey::DescribeTopicParititons, 0, 4},
+    {registry::ApiKey::Fetch, 0, 16},
 });
 
 auto get_api_details(uint16_t raw_key) -> std::optional<ApiDetails>;
