@@ -1,6 +1,7 @@
 #pragma once
 
-#include "describe_topic_partitions.hpp"
+#include "api/dto/describe_topic_partitions.hpp"
+#include "api/dto/fetch_partitions.hpp"
 
 #include <inttypes.h>
 #include <variant>
@@ -14,7 +15,8 @@
 namespace kafka::api::dto {
 
 using ResponseBody =
-    std::variant<ApiVersionsResponse, DescribeTopicPartitionsResponse>;
+    std::variant<ApiVersionsResponse, DescribeTopicPartitionsResponse,
+                 FetchResponse>;
 
 struct Response {
   uint32_t correlation_id;

@@ -2,20 +2,20 @@
 
 #include <asio.hpp>
 
-#include "api/handler/request_handler.hpp"
+#include "api/router.hpp"
 
 using asio::ip::tcp;
 
 namespace kafka {
 class ClientSession {
 public:
-  ClientSession(tcp::socket client_socket, kafka::RequestHandler &handler)
-      : client_socket_(std::move(client_socket)), request_handler_(handler) {}
+  ClientSession(tcp::socket client_socket, KafkaRouter &router)
+      : client_socket_(std::move(client_socket)), router_(router) {}
 
   void handle_connection();
 
 private:
   tcp::socket client_socket_;
-  kafka::RequestHandler &request_handler_;
+  kafka::KafkaRouter &router_;
 };
 }; // namespace kafka

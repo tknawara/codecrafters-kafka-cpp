@@ -32,7 +32,7 @@ void kafka::ClientSession::handle_connection() {
     auto request =
         Deserializer<api::dto::Request>::deserialize(request_body, offset);
     request.message_size = request_size;
-    auto response = request_handler_.handle(request);
+    auto response = router_.handle(request);
     std::vector<uint8_t> response_buffer;
     Serializer<api::dto::Response>::serialize(response_buffer, response);
     asio::write(client_socket_, asio::buffer(response_buffer), error_code);

@@ -20,7 +20,7 @@ struct ApiDetails {
 struct ApiVersionsResponse {
   static constexpr uint8_t header_version = 0;
 
-  error::ErrorCode error;
+  int16_t error_code{0};
   std::vector<ApiDetails> keys;
   uint32_t throttle_time_ms;
 };
@@ -33,6 +33,8 @@ inline constexpr auto supported_apis = std::to_array<ApiDetails>({
 
 auto get_api_details(uint16_t raw_key) -> std::optional<ApiDetails>;
 auto get_all_api_details() -> std::vector<ApiDetails>;
+
+bool is_supported_version(registry::ApiKey key, uint16_t version);
 
 } // namespace kafka::api::dto
 
@@ -54,7 +56,7 @@ template <> struct Serializer<api::dto::ApiVersionsResponse> {
 
   static void serialize(std::vector<uint8_t> &buffer,
                         const api::dto::ApiVersionsResponse &body) {
-    writer::write_be(buffer, static_cast<uint16_t>(body.error));
+    writer::write_be(buffer, body.error_code);
     writer::write_compact_array(buffer, body.keys);
     writer::write_be(buffer, body.throttle_time_ms);
 

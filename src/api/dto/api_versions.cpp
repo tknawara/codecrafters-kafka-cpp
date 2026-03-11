@@ -19,3 +19,13 @@ auto kafka::api::dto::get_api_details(uint16_t raw_key)
 auto kafka::api::dto::get_all_api_details() -> std::vector<ApiDetails> {
   return std::vector<ApiDetails>(supported_apis.begin(), supported_apis.end());
 }
+
+bool kafka::api::dto::is_supported_version(api::registry::ApiKey key,
+                                           uint16_t version) {
+  auto api_details = get_api_details(std::to_underlying(key));
+  if (!api_details) {
+    return false;
+  }
+  return version >= api_details->min_version &&
+         version <= api_details->max_version;
+}

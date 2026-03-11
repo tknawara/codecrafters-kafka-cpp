@@ -1,30 +1,32 @@
-#include "request_handler.hpp"
+#include "api/controller.hpp"
 
 #include <stdexcept>
 
 #include "api/registry.hpp"
 
-auto kafka::RequestHandler::handle(const api::dto::Request &request)
+auto kafka::KafkaController::handle(const api::dto::Request &request)
     -> api::dto::Response {
   switch (request.header.api) {
   case api::registry::ApiKey::ApiVersions:
     return handle_api_versions(request);
   case api::registry::ApiKey::DescribeTopicParititons:
     return handle_describe_topic_partitions(request);
+  case api::registry::ApiKey::Fetch:
+    return handle_fetch_partitions(request);
   default:
     throw std::invalid_argument("unsupported api");
   }
 }
 
-auto kafka::RequestHandler::handle_api_versions(
+auto kafka::KafkaController::handle_api_versions(
     const api::dto::Request &request) -> api::dto::Response {
   api::dto::ApiVersionsResponse body{};
-  body.error = error::ErrorCode::None;
   for (const auto api_detail : api::dto::get_all_api_details()) {
     body.keys.push_back(api_detail);
   }
-  if (!supported_version(request.header.version)) {
-    body.error = error::ErrorCode::UnsupportedVersion;
+  if (!api::dto::is_supported_version(api::registry::ApiKey::ApiVersions,
+                                      request.header.version)) {
+    body.error_code = error::ErrorCode::UnsupportedVersion;
     body.keys.clear();
   }
 
@@ -35,7 +37,7 @@ auto kafka::RequestHandler::handle_api_versions(
   return response;
 }
 
-auto kafka::RequestHandler::handle_describe_topic_partitions(
+auto kafka::KafkaController::handle_describe_topic_partitions(
     const api::dto::Request &request) -> api::dto::Response {
   std::span<const uint8_t> body_span{request.body};
   size_t offset = 0;
@@ -99,6 +101,12 @@ auto kafka::RequestHandler::handle_describe_topic_partitions(
   return response;
 }
 
-bool kafka::RequestHandler::supported_version(uint16_t version) {
-  return version <= 4;
+auto kafka::KafkaController::handle_fetch_partitions(
+    const api::dto::Request &request) -> api::dto::Response {
+  api::dto::FetchResponse res_body;
+  api::dto::Response response{
+      .correlation_id = request.header.correlation_id,
+      .body = res_body,
+  };
+  return response;
 }

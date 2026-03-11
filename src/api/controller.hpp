@@ -6,10 +6,10 @@
 
 namespace kafka {
 
-class RequestHandler {
+class KafkaController {
 public:
-  explicit RequestHandler(const metadata::MetadataCache &cache)
-      : cache_(cache) {}
+  explicit KafkaController(const metadata::MetadataCache cache)
+      : cache_(std::move(cache)) {}
   auto handle(const api::dto::Request &request) -> api::dto::Response;
 
 private:
@@ -18,6 +18,8 @@ private:
   auto handle_api_versions(const api::dto::Request &request)
       -> api::dto::Response;
   auto handle_describe_topic_partitions(const api::dto::Request &request)
+      -> api::dto::Response;
+  auto handle_fetch_partitions(const api::dto::Request &request)
       -> api::dto::Response;
   bool supported_version(uint16_t version);
 };

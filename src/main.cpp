@@ -13,7 +13,8 @@
 #include <unistd.h>
 
 #include "api/handler/client_session.hpp"
-#include "api/handler/request_handler.hpp"
+#include "api/middleware.hpp"
+#include "api/router.hpp"
 #include "metadata/cache.hpp"
 #include "metadata/parser.hpp"
 
@@ -31,9 +32,14 @@ int main() {
   std::string log_file_path =
       "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log";
 
-  auto metadata_cache =
-      kafka::metadata::MetadataParser::parse_log_file(log_file_path);
-  kafka::RequestHandler request_handler{metadata_cache};
+  auto cache = kafka::metadata::MetadataParser::parse_log_file(log_file_path);
+  kafka::KafkaController controller{std::move(cache)};
+
+  kafka::KafkaRouter router =
+      kafka::KafkaRouterBuilder{std::move(controller)}
+          .use(kafka::api::middleware::version_validator_middleware)
+          .use(kafka::api::middleware::logging_middleware)
+          .build();
 
   std::ifstream log_file(
       "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log",
@@ -63,11 +69,11 @@ int main() {
       std::cout << "Client connected from: " << socket.remote_endpoint()
                 << "\n";
 
-      std::thread client_thread([client_socket = std::move(socket),
-                                 &request_handler]() mutable {
-        kafka::ClientSession session(std::move(client_socket), request_handler);
-        session.handle_connection();
-      });
+      std::thread client_thread(
+          [client_socket = std::move(socket), &router]() mutable {
+            kafka::ClientSession session(std::move(client_socket), router);
+            session.handle_connection();
+          });
 
       client_thread.detach();
 
