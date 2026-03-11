@@ -2,12 +2,12 @@
 
 #include <algorithm>
 #include <array>
-#include <cinttypes>
+#include <cstdint>
 #include <string>
 #include <vector>
 
 #include "core/deserializable.hpp"
-#include "core/primitive_deserializers.hpp"
+#include "core/primitive_deserializers.hpp" // IWYU pragma: keep
 #include "core/reader.hpp"
 
 namespace kafka::metadata::dto {
@@ -47,6 +47,10 @@ template <> struct Deserializer<metadata::dto::TopicRecord> {
   }
 };
 
+static_assert(
+    Deserializable<metadata::dto::TopicRecord>,
+    "TopicRecord Deserializer failed to implement the required contract!");
+
 template <> struct Deserializer<metadata::dto::PartitionRecord> {
   static metadata::dto::PartitionRecord
   deserialize(std::span<const uint8_t> buffer, size_t &offset) {
@@ -77,5 +81,9 @@ template <> struct Deserializer<metadata::dto::PartitionRecord> {
     return record;
   }
 };
+
+static_assert(
+    Deserializable<metadata::dto::PartitionRecord>,
+    "PartitionRecord Deserializer failed to implement the required contract!");
 
 } // namespace kafka
