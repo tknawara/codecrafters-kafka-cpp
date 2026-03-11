@@ -89,4 +89,5 @@ auto kafka::metadata::MetadataParser::parse_log_file(
   }
 
   std::println("Cache # of topics: {}", cache.num_of_topics());
+  return cache;
 }
