@@ -45,13 +45,13 @@ template <> struct Deserializer<api::dto::RequestHeader> {
       offset += client_id_length;
     }
 
-    // 2. NEW: Skip the header TAG_BUFFER (Request Header v2 only)
-    // For APIVersions (API 18) it might be v1 or v0, so we should only skip
-    // this tag buffer if the API is known to use v2. DescribeTopicPartitions
-    // uses v2.
-    if (header.api == api::registry::ApiKey::DescribeTopicParititons ||
-        header.api == api::registry::ApiKey::Fetch) {
-      offset += 1; // Skip the 0x00 byte
+    auto header_version =
+        api::registry::get_request_header_version(header.api, header.version);
+
+    if (header_version == 2) {
+      // Flexible header v2 has a TAG_BUFFER.
+      // Safely read the LEB128 varint so the offset advances correctly!
+      uint32_t tag_length = reader::read_unsigned_varint(buffer, offset);
     }
 
     return header;

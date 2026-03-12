@@ -8,4 +8,6 @@ enum class ApiKey : uint16_t {
   DescribeTopicParititons = 75,
   Fetch = 1
 };
-}
+
+int16_t get_request_header_version(ApiKey api, int16_t version);
+} // namespace kafka::api::registry
