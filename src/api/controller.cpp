@@ -4,6 +4,8 @@
 
 #include "api/dto/fetch_partitions.hpp"
 #include "api/registry.hpp"
+#include "storage/disk_reader.hpp"
+#include "storage/log_parser.hpp"
 
 auto kafka::KafkaController::handle(const api::dto::Request &request)
     -> api::dto::Response {
@@ -119,8 +121,9 @@ auto kafka::KafkaController::handle_fetch_partitions(
     res_topic.topic_id = req_topic.topic_id; // Echo the UUID back!
 
     auto cached_topic = cache_.get_topic_by_id(req_topic.topic_id);
+
+    // 1. Build the partition response for the known topic
     if (cached_topic) {
-      // TODO: read from disk
       for (const auto &req_partition : req_topic.partitions) {
         api::dto::FetchPartitionResponse res_partition{};
         res_partition.partition_index = req_partition.partition_id;
@@ -129,10 +132,18 @@ auto kafka::KafkaController::handle_fetch_partitions(
         res_partition.last_stable_offset = 0;
         res_partition.log_start_offset = 0;
 
+        auto log_bytes = storage::read_log_file(cached_topic->name,
+                                                req_partition.partition_id);
+        if (log_bytes) {
+          res_partition.records = storage::extract_records_from_offset(
+              *log_bytes, req_partition.fetch_offset);
+        }
+
         res_topic.partitions.push_back(res_partition);
       }
-    } else {
-      // 2. Build the partition response for the unknown topic
+    }
+    // 2. Build the partition response for the unknown topic
+    else {
       api::dto::FetchPartitionResponse res_partition{};
       res_partition.partition_index = 0;
       res_partition.error_code = 100; // UNKNOWN_TOPIC_ID
