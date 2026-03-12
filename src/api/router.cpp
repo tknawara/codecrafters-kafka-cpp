@@ -1,11 +1,8 @@
 #include "api/router.hpp"
 
 kafka::KafkaRouter kafka::KafkaRouterBuilder::build() {
-  auto termianl_node = [this](const api::dto::Request &request) {
-    return this->controller_.handle(request);
-  };
-  KafkaRouter router{};
-  HandlerFunc current_node = termianl_node;
+  KafkaRouter router{std::move(controller_)};
+  HandlerFunc current_node = router.terminal_node_;
 
   for (auto it = middlewares_.rbegin(); it != middlewares_.rend(); ++it) {
     auto current_mw = *it;

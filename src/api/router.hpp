@@ -14,8 +14,15 @@ public:
   auto handle(const api::dto::Request &request) -> api::dto::Response;
 
 private:
-  KafkaRouter() = default;
   HandlerFunc compiled_pipeline_;
+  HandlerFunc terminal_node_;
+  KafkaController controller_;
+
+  KafkaRouter(KafkaController controller) : controller_(controller) {
+    terminal_node_ = [this](const api::dto::Request &request) {
+      return this->controller_.handle(request);
+    };
+  }
 };
 
 class KafkaRouterBuilder {
