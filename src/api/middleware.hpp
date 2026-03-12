@@ -1,7 +1,5 @@
 #pragma once
 
-#include <print>
-
 #include "api/dto/request.hpp"
 #include "api/dto/response.hpp"
 #include "api/types.hpp"

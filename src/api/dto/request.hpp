@@ -49,7 +49,8 @@ template <> struct Deserializer<api::dto::RequestHeader> {
     // For APIVersions (API 18) it might be v1 or v0, so we should only skip
     // this tag buffer if the API is known to use v2. DescribeTopicPartitions
     // uses v2.
-    if (header.api == api::registry::ApiKey::DescribeTopicParititons) {
+    if (header.api == api::registry::ApiKey::DescribeTopicParititons ||
+        header.api == api::registry::ApiKey::Fetch) {
       offset += 1; // Skip the 0x00 byte
     }
 

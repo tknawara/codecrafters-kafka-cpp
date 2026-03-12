@@ -7,5 +7,4 @@ ColumnLimit: 120
 AllowShortFunctionsOnASingleLine: Empty
 AlwaysBreakAfterReturnType: None
 PackConstructorInitializers: NextLine
-Standard: C++23
 ---

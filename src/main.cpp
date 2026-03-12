@@ -1,9 +1,9 @@
 #include <arpa/inet.h>
 #include <asio.hpp>
+#include <backward.hpp>
 #include <cstdlib>
 #include <cstring>
 #include <fmt/format.h>
-#include <fstream>
 #include <iostream>
 #include <netdb.h>
 #include <print>
@@ -15,6 +15,7 @@
 #include "api/handler/client_session.hpp"
 #include "api/middleware.hpp"
 #include "api/router.hpp"
+#include "core/hexdump.hpp"
 #include "metadata/cache.hpp"
 #include "metadata/parser.hpp"
 
@@ -41,23 +42,7 @@ int main() {
           .use(kafka::api::middleware::logging_middleware)
           .build();
 
-  std::ifstream log_file(
-      "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log",
-      std::ios::binary);
-
-  if (log_file) {
-    std::cerr << "\n--- BEGIN SAFE HEX DUMP ---\n";
-    unsigned char byte_val;
-    while (log_file.read(reinterpret_cast<char *>(&byte_val), 1)) {
-      // Print exactly 2 hex characters per byte with zero padding, no spaces
-      std::cerr << std::hex << std::setw(2) << std::setfill('0')
-                << static_cast<int>(byte_val);
-    }
-    std::cerr << "\n--- END SAFE HEX DUMP ---\n";
-
-    // Reset standard output back to decimal just in case
-    std::cerr << std::dec;
-  }
+  hexdump::dump_file(log_file_path);
 
   while (true) {
     try {
@@ -79,6 +64,10 @@ int main() {
 
     } catch (std::exception &e) {
       std::cerr << "Exception: " << e.what() << "\n";
+      backward::StackTrace st;
+      st.load_here(32);
+      backward::Printer p;
+      p.print(st, std::cerr);
     }
   }
 

@@ -2,7 +2,9 @@
 
 #include <stdexcept>
 
+#include "api/dto/fetch_partitions.hpp"
 #include "api/registry.hpp"
+#include "core/deserializable.hpp"
 
 auto kafka::KafkaController::handle(const api::dto::Request &request)
     -> api::dto::Response {
@@ -107,6 +109,36 @@ auto kafka::KafkaController::handle_describe_topic_partitions(
 
 auto kafka::KafkaController::handle_fetch_partitions(
     const api::dto::Request &request) -> api::dto::Response {
+  size_t offset = 0;
+
+  // 1. Parse the incoming Fetch v16 request
+  auto fetch_req = kafka::Deserializer<api::dto::FetchRequest>::deserialize(
+      request.body, offset);
+
+  api::dto::FetchResponse fetch_res{};
+  fetch_res.throttle_time_ms = 0;
+  fetch_res.error_code = 0; // Top-level error code must be 0
+  fetch_res.session_id = 0;
+
+  for (const auto &req_topic : fetch_req.topics) {
+    api::dto::FetchTopicResponse res_topic{};
+    res_topic.topic_id = req_topic.topic_id; // Echo the UUID back!
+
+    // 2. Build the partition response for the unknown topic
+    api::dto::FetchPartitionResponse res_partition{};
+    res_partition.partition_index = 0;
+    res_partition.error_code = 100; // UNKNOWN_TOPIC_ID
+    res_partition.high_watermark = 0;
+    res_partition.last_stable_offset = 0;
+    res_partition.log_start_offset = 0;
+
+    res_topic.partitions.push_back(res_partition);
+    fetch_res.responses.push_back(res_topic);
+  }
+
+  // 3. Let your Router pipeline handle the final serialization
+  return api::dto::Response{.correlation_id = request.header.correlation_id,
+                            .body = fetch_res};
   api::dto::FetchResponse res_body;
   api::dto::Response response{
       .correlation_id = request.header.correlation_id,

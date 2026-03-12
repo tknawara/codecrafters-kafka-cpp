@@ -1,6 +1,7 @@
 #include "api/middleware.hpp"
 
 #include <chrono>
+#include <iostream>
 #include <print>
 #include <string>
 
@@ -8,6 +9,7 @@
 #include "api/dto/describe_topic_partitions.hpp"
 #include "api/dto/fetch_partitions.hpp"
 #include "api/registry.hpp"
+#include "core/hexdump.hpp"
 
 kafka::api::dto::Response kafka::api::middleware::version_validator_middleware(
     const api::dto::Request &request, HandlerFunc next) {
@@ -51,6 +53,7 @@ constexpr auto color_cyan = "\033[36m";    // For incoming requests
 constexpr auto color_green = "\033[32m";   // For successful responses
 constexpr auto color_yellow = "\033[33m";  // For timing
 constexpr auto color_magenta = "\033[35m"; // For the middleware tag
+constexpr auto color_dim = "\033[2m";
 
 static constexpr std::string get_api_name(kafka::api::registry::ApiKey key) {
   switch (key) {
@@ -68,27 +71,28 @@ static constexpr std::string get_api_name(kafka::api::registry::ApiKey key) {
 kafka::api::dto::Response
 kafka::api::middleware::logging_middleware(const api::dto::Request &request,
                                            HandlerFunc next) {
-  // 1. Start the timer
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  // 2. Log the incoming request (Cyan)
   std::println(
+      stderr,
       "{}[Router]{} {}-> INCOMING{}  | API: {} (v{}), Correlation ID: {}",
       color_magenta, color_reset, color_cyan, color_reset,
       get_api_name(request.header.api), request.header.version,
       request.header.correlation_id);
 
-  // 3. Pass control down the onion to your controller
+  if (!request.body.empty()) {
+    hexdump::dump(request.body, std::cerr, "Request Body");
+  }
+
   api::dto::Response response = next(request);
 
-  // 4. Stop the timer
   auto end_time = std::chrono::high_resolution_clock::now();
   auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(
                          end_time - start_time)
                          .count();
 
-  // 5. Log the outgoing response (Green + Yellow for timing)
-  std::println("{}[Router]{} {}<- OUTGOING{}  | API: {}, Correlation ID: {} "
+  std::println(stderr,
+               "{}[Router]{} {}<- OUTGOING{}  | API: {}, Correlation ID: {} "
                "{}[Took: {} us]{}",
                color_magenta, color_reset, color_green, color_reset,
                get_api_name(request.header.api), response.correlation_id,

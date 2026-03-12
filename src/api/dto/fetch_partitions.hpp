@@ -1,9 +1,12 @@
 #pragma once
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <vector>
 
+#include "core/deserializable.hpp"
+#include "core/reader.hpp"
 #include "core/serializable.hpp"
 #include "core/writer.hpp"
 
@@ -33,10 +36,20 @@ struct FetchRequest {
   std::vector<FetchTopicRequest> topics;
 };
 
+struct FetchPartitionAbortedTransactionResponse {
+  int64_t producer_id;
+  int64_t first_offset;
+};
+
 struct FetchPartitionResponse {
   int32_t partition_index;
   int16_t error_code;
   int64_t high_watermark;
+  int64_t last_stable_offset;
+  int64_t log_start_offset;
+  std::vector<FetchPartitionAbortedTransactionResponse> aborted_transactions;
+  int32_t preferred_read_replica = -1;
+  std::vector<uint8_t> records;
 };
 
 struct FetchTopicResponse {
@@ -57,14 +70,36 @@ struct FetchResponse {
 
 namespace kafka {
 
+template <>
+struct Serializer<api::dto::FetchPartitionAbortedTransactionResponse> {
+  static void
+  serialize(std::vector<uint8_t> &buffer,
+            const api::dto::FetchPartitionAbortedTransactionResponse &txn) {
+    writer::write_be<int64_t>(buffer, txn.producer_id);
+    writer::write_be<int64_t>(buffer, txn.first_offset);
+    writer::write_be<uint8_t>(buffer, 0x00); // TAG_BUFFER
+  }
+};
+
 template <> struct Serializer<api::dto::FetchPartitionResponse> {
   static void serialize(std::vector<uint8_t> &buffer,
                         const api::dto::FetchPartitionResponse &response) {
     writer::write_be<int32_t>(buffer, response.partition_index);
     writer::write_be<int16_t>(buffer, response.error_code);
     writer::write_be<int64_t>(buffer, response.high_watermark);
-
-    // Note: We will add the raw record_batches array here in later stages!
+    writer::write_be<int64_t>(buffer, response.last_stable_offset);
+    writer::write_be<int64_t>(buffer, response.log_start_offset);
+    writer::write_compact_array(buffer, response.aborted_transactions);
+    // Preferred read replica
+    writer::write_be<int32_t>(buffer, response.preferred_read_replica);
+    // Records (compact nullable bytes)
+    if (response.records.empty()) {
+      writer::write_unsigned_varint(buffer, 0); // null
+    } else {
+      writer::write_unsigned_varint(buffer, response.records.size() + 1);
+      buffer.insert(buffer.end(), response.records.begin(),
+                    response.records.end());
+    }
 
     // TAG_BUFFER
     writer::write_be<uint8_t>(buffer, 0x00);
@@ -112,4 +147,71 @@ template <> struct Serializer<api::dto::FetchResponse> {
 static_assert(Serializable<api::dto::FetchResponse>,
               "FetchResponse failed the Serializer contract!");
 
+} // namespace kafka
+
+namespace kafka {
+template <> struct Deserializer<api::dto::FetchRequest> {
+  static api::dto::FetchRequest deserialize(std::span<const uint8_t> buffer,
+                                            size_t &offset) {
+    api::dto::FetchRequest req{};
+
+    // 1. Read top-level metadata
+    req.max_wait_ms = reader::read_be<int32_t>(buffer, offset);
+    req.min_bytes = reader::read_be<int32_t>(buffer, offset);
+    req.max_bytes = reader::read_be<int32_t>(buffer, offset);
+    req.isolation_level = reader::read_be<int8_t>(buffer, offset);
+    req.session_id = reader::read_be<int32_t>(buffer, offset);
+    req.session_epoch = reader::read_be<int32_t>(buffer, offset);
+
+    // 2. Read Topics Compact Array Length (N + 1)
+    uint32_t topics_length = reader::read_unsigned_varint(buffer, offset);
+    uint32_t topics_count = (topics_length == 0) ? 0 : topics_length - 1;
+
+    for (uint32_t i = 0; i < topics_count; ++i) {
+      api::dto::FetchTopicRequest topic{};
+
+      // Read the 16-byte UUID
+      std::copy_n(buffer.begin() + offset, 16, topic.topic_id.begin());
+      offset += 16;
+
+      // Read Partitions Compact Array Length (N + 1)
+      uint32_t partitions_length = reader::read_unsigned_varint(buffer, offset);
+      uint32_t partitions_count =
+          (partitions_length == 0) ? 0 : partitions_length - 1;
+
+      for (uint32_t j = 0; j < partitions_count; ++j) {
+        api::dto::FetchPartitionRequest partition{};
+
+        partition.partition_id = reader::read_be<int32_t>(buffer, offset);
+        partition.current_leader_epoch =
+            reader::read_be<int32_t>(buffer, offset);
+        partition.fetch_offset = reader::read_be<int64_t>(buffer, offset);
+        partition.last_fetched_epoch = reader::read_be<int32_t>(buffer, offset);
+        partition.log_start_offset = reader::read_be<int64_t>(buffer, offset);
+        partition.partition_max_bytes =
+            reader::read_be<int32_t>(buffer, offset);
+
+        // Read Partition TAG_BUFFER length and skip it
+        uint32_t p_tags_length = reader::read_unsigned_varint(buffer, offset);
+        // (If your varint parser doesn't advance offset for the contents of the
+        // tag buffer, you might need a loop here to skip tag bytes, but usually
+        // it's just 0x00 for empty tags)
+
+        topic.partitions.push_back(partition);
+      }
+
+      // Read Topic TAG_BUFFER length and skip it
+      uint32_t t_tags_length = reader::read_unsigned_varint(buffer, offset);
+
+      req.topics.push_back(topic);
+    }
+
+    // Note: We can safely stop deserializing right here!
+    // The request contains 'forgotten_topics_data' and 'rack_id' after this,
+    // but since we only need the topic_id to build the response, we can just
+    // return what we have.
+
+    return req;
+  }
+};
 } // namespace kafka

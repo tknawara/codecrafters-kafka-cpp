@@ -6,4 +6,9 @@
   "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands.json",
   "C_Cpp.intelliSenseEngine": "disabled",
   "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+  "clangd.arguments": [
+    "--clang-tidy",
+    "--background-index",
+    "--compile-commands-dir=${workspaceFolder}/build"
+  ]
 }

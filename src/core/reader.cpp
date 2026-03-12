@@ -1,4 +1,5 @@
 #include "reader.hpp"
+#include <backward.hpp>
 #include <stdexcept>
 
 uint32_t kafka::reader::read_unsigned_varint(std::span<const uint8_t> buffer,
@@ -18,10 +19,18 @@ uint32_t kafka::reader::read_unsigned_varint(std::span<const uint8_t> buffer,
     shift += 7;
 
     if (shift >= 32) {
+      backward::StackTrace st;
+      st.load_here(32);
+      backward::Printer p;
+      p.print(st, std::cerr);
       throw std::runtime_error("Malformed varint: exceeds 32 bits");
     }
   }
 
+  backward::StackTrace st;
+  st.load_here(32);
+  backward::Printer p;
+  p.print(st, std::cerr);
   throw std::out_of_range("Buffer ended before varint was fully parsed");
 }
 
