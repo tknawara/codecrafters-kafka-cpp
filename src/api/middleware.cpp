@@ -98,5 +98,8 @@ kafka::api::middleware::logging_middleware(const api::dto::Request &request,
                get_api_name(request.header.api), response.correlation_id,
                color_yellow, duration_us, color_reset);
 
+  std::vector<uint8_t> response_buffer;
+  Serializer<api::dto::Response>::serialize(response_buffer, response);
+  hexdump::dump(response_buffer, std::cerr, "Response body");
   return response;
 }

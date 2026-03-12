@@ -4,7 +4,6 @@
 
 #include "api/dto/fetch_partitions.hpp"
 #include "api/registry.hpp"
-#include "core/deserializable.hpp"
 
 auto kafka::KafkaController::handle(const api::dto::Request &request)
     -> api::dto::Response {
@@ -25,11 +24,6 @@ auto kafka::KafkaController::handle_api_versions(
   api::dto::ApiVersionsResponse body{};
   for (const auto api_detail : api::dto::get_all_api_details()) {
     body.keys.push_back(api_detail);
-  }
-  if (!api::dto::is_supported_version(api::registry::ApiKey::ApiVersions,
-                                      request.header.version)) {
-    body.error_code = error::ErrorCode::UnsupportedVersion;
-    body.keys.clear();
   }
 
   api::dto::Response response{
@@ -124,25 +118,35 @@ auto kafka::KafkaController::handle_fetch_partitions(
     api::dto::FetchTopicResponse res_topic{};
     res_topic.topic_id = req_topic.topic_id; // Echo the UUID back!
 
-    // 2. Build the partition response for the unknown topic
-    api::dto::FetchPartitionResponse res_partition{};
-    res_partition.partition_index = 0;
-    res_partition.error_code = 100; // UNKNOWN_TOPIC_ID
-    res_partition.high_watermark = 0;
-    res_partition.last_stable_offset = 0;
-    res_partition.log_start_offset = 0;
+    auto cached_topic = cache_.get_topic_by_id(req_topic.topic_id);
+    if (cached_topic) {
+      // TODO: read from disk
+      for (const auto &req_partition : req_topic.partitions) {
+        api::dto::FetchPartitionResponse res_partition{};
+        res_partition.partition_index = req_partition.partition_id;
+        res_partition.error_code = 0;
+        res_partition.high_watermark = 0;
+        res_partition.last_stable_offset = 0;
+        res_partition.log_start_offset = 0;
 
-    res_topic.partitions.push_back(res_partition);
+        res_topic.partitions.push_back(res_partition);
+      }
+    } else {
+      // 2. Build the partition response for the unknown topic
+      api::dto::FetchPartitionResponse res_partition{};
+      res_partition.partition_index = 0;
+      res_partition.error_code = 100; // UNKNOWN_TOPIC_ID
+      res_partition.high_watermark = 0;
+      res_partition.last_stable_offset = 0;
+      res_partition.log_start_offset = 0;
+
+      res_topic.partitions.push_back(res_partition);
+    }
+
     fetch_res.responses.push_back(res_topic);
   }
 
   // 3. Let your Router pipeline handle the final serialization
   return api::dto::Response{.correlation_id = request.header.correlation_id,
                             .body = fetch_res};
-  api::dto::FetchResponse res_body;
-  api::dto::Response response{
-      .correlation_id = request.header.correlation_id,
-      .body = res_body,
-  };
-  return response;
 }

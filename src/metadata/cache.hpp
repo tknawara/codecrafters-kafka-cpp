@@ -40,6 +40,21 @@ public:
     return std::nullopt;
   }
 
+  std::optional<dto::TopicRecord>
+  get_topic_by_id(const std::array<uint8_t, 16> &target_topic_id) const {
+    auto it = std::ranges::find_if(
+        topics_by_name,
+        [&target_topic_id](const auto &topic_id) {
+          return topic_id == target_topic_id;
+        },
+        [](const auto &p) { return p.second.topic_id; });
+
+    if (it == topics_by_name.end()) {
+      return std::nullopt;
+    }
+    return it->second;
+  }
+
   std::vector<dto::PartitionRecord>
   get_partitions(const std::array<uint8_t, 16> &topic_id) const {
     if (auto it = partitions_by_id.find(topic_id);
