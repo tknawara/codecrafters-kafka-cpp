@@ -93,6 +93,10 @@ auto kafka::KafkaController::handle_describe_topic_partitions(
     res_body.topics.push_back(res_topic);
   }
 
+  std::ranges::sort(res_body.topics, [](const auto &a, const auto &b) {
+    return a.name < b.name;
+  });
+
   api::dto::Response response{
       .correlation_id = request.header.correlation_id,
       .body = res_body,
