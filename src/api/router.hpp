@@ -15,20 +15,11 @@ public:
 
 private:
   HandlerFunc compiled_pipeline_;
-  HandlerFunc terminal_node_;
-  KafkaController controller_;
-
-  KafkaRouter(KafkaController controller) : controller_(controller) {
-    terminal_node_ = [this](const api::dto::Request &request) {
-      return this->controller_.handle(request);
-    };
-  }
 };
 
 class KafkaRouterBuilder {
 public:
-  KafkaRouterBuilder(KafkaController controller)
-      : controller_(std::move(controller)) {}
+  KafkaRouterBuilder(KafkaController &controller) : controller_(controller) {}
   KafkaRouter build();
   KafkaRouterBuilder &use(MiddlewareFunc mw) {
     middlewares_.push_back(mw);
@@ -37,6 +28,6 @@ public:
 
 private:
   std::vector<MiddlewareFunc> middlewares_;
-  KafkaController controller_;
+  KafkaController &controller_;
 };
 } // namespace kafka

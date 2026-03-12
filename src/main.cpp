@@ -33,10 +33,10 @@ int main() {
       "/tmp/kraft-combined-logs/__cluster_metadata-0/00000000000000000000.log";
 
   auto cache = kafka::metadata::MetadataParser::parse_log_file(log_file_path);
-  kafka::KafkaController controller{std::move(cache)};
+  kafka::KafkaController controller{cache};
 
   kafka::KafkaRouter router =
-      kafka::KafkaRouterBuilder{std::move(controller)}
+      kafka::KafkaRouterBuilder{controller}
           .use(kafka::api::middleware::version_validator_middleware)
           .use(kafka::api::middleware::logging_middleware)
           .build();

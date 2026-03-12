@@ -8,12 +8,12 @@ namespace kafka {
 
 class KafkaController {
 public:
-  explicit KafkaController(const metadata::MetadataCache cache)
-      : cache_(std::move(cache)) {}
+  explicit KafkaController(const metadata::MetadataCache &cache)
+      : cache_(cache) {}
   auto handle(const api::dto::Request &request) -> api::dto::Response;
 
 private:
-  const metadata::MetadataCache cache_;
+  const metadata::MetadataCache &cache_;
 
   auto handle_api_versions(const api::dto::Request &request)
       -> api::dto::Response;
