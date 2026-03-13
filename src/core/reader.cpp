@@ -59,3 +59,49 @@ std::string kafka::reader::read_compact_string(std::span<const uint8_t> buffer,
   offset += actual_length;
   return result;
 }
+
+std::optional<std::string>
+kafka::reader::read_nullable_compact_string(std::span<const uint8_t> buffer,
+                                            size_t &offset) {
+  uint32_t compact_length = read_unsigned_varint(buffer, offset);
+  if (compact_length == 0) {
+    return std::nullopt; // Explicitly null
+  }
+  size_t actual_length = compact_length - 1;
+  std::string result(buffer.begin() + offset,
+                     buffer.begin() + offset + actual_length);
+  offset += actual_length;
+  return result;
+}
+
+std::optional<std::vector<uint8_t>>
+kafka::reader::read_compact_bytes(std::span<const uint8_t> buffer,
+                                  size_t &offset) {
+  uint32_t compact_length = read_unsigned_varint(buffer, offset);
+  if (compact_length == 0) {
+    return std::nullopt;
+  }
+  size_t actual_length = compact_length - 1;
+  std::vector<uint8_t> result(buffer.begin() + offset,
+                              buffer.begin() + offset + actual_length);
+  offset += actual_length;
+  return result;
+}
+
+uint32_t
+kafka::reader::read_compact_array_length(std::span<const uint8_t> buffer,
+                                         size_t &offset) {
+  uint32_t compact_length = read_unsigned_varint(buffer, offset);
+  return (compact_length == 0) ? 0 : compact_length - 1;
+}
+
+void kafka::reader::skip_tag_buffer(std::span<const uint8_t> buffer,
+                                    size_t &offset) {
+  uint32_t tags_count = read_unsigned_varint(buffer, offset);
+  for (uint32_t i = 0; i < tags_count; ++i) {
+    read_unsigned_varint(buffer, offset); // Skip tag type
+    uint32_t tag_length =
+        read_unsigned_varint(buffer, offset); // Read tag length
+    offset += tag_length;                     // Jump over the tag payload
+  }
+}

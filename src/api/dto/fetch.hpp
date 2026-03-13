@@ -13,7 +13,7 @@
 namespace kafka::api::dto {
 
 struct FetchPartitionRequest {
-  int32_t partition_id;
+  int32_t index;
   int32_t current_leader_epoch;
   int64_t fetch_offset;
   int32_t last_fetched_epoch;
@@ -182,7 +182,7 @@ template <> struct Deserializer<api::dto::FetchRequest> {
       for (uint32_t j = 0; j < partitions_count; ++j) {
         api::dto::FetchPartitionRequest partition{};
 
-        partition.partition_id = reader::read_be<int32_t>(buffer, offset);
+        partition.index = reader::read_be<int32_t>(buffer, offset);
         partition.current_leader_epoch =
             reader::read_be<int32_t>(buffer, offset);
         partition.fetch_offset = reader::read_be<int64_t>(buffer, offset);

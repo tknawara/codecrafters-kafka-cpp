@@ -5,21 +5,21 @@
 #include <vector>
 
 #include "core/deserializable.hpp"
-#include "core/primitive_serializers.hpp"
+#include "core/primitive_serializers.hpp" // IWYU pragma: keep
 #include "core/reader.hpp"
 #include "core/serializable.hpp"
 #include "core/writer.hpp"
 
 namespace kafka::api::dto {
-struct DescribeTopicPartitionsRequestTopic {
+struct DescribeTopicRequest {
   std::string name;
 };
 
-struct DescribeTopicPartitionsRequest {
-  std::vector<DescribeTopicPartitionsRequestTopic> topics;
+struct DescribeRequest {
+  std::vector<DescribeTopicRequest> topics;
 };
 
-struct DescribeTopicPartitionsResponsePartition {
+struct DescribeTopicPartitionResponse {
   int16_t error_code{0};
   int32_t partition_index{0};
   int32_t leader_id{0};
@@ -31,20 +31,20 @@ struct DescribeTopicPartitionsResponsePartition {
   std::vector<int32_t> offline_replicas;
 };
 
-struct DescribeTopicPartitionsResponseTopic {
+struct DescribeTopicResponse {
   int16_t error_code{0};
   std::string name;
   std::array<uint8_t, 16> topic_id;
   bool is_internal{false};
-  std::vector<DescribeTopicPartitionsResponsePartition> partitions{};
+  std::vector<DescribeTopicPartitionResponse> partitions{};
   int32_t topic_authorized_operations{0x00000000};
 };
 
-struct DescribeTopicPartitionsResponse {
+struct DescribeResponse {
   static constexpr uint8_t header_version = 1;
 
   int32_t throttle_time_ms{0};
-  std::vector<DescribeTopicPartitionsResponseTopic> topics;
+  std::vector<DescribeTopicResponse> topics;
   int8_t next_cursor{-1};
 };
 
@@ -52,11 +52,10 @@ struct DescribeTopicPartitionsResponse {
 
 namespace kafka {
 
-template <>
-struct Serializer<api::dto::DescribeTopicPartitionsResponsePartition> {
-  static void serialize(
-      std::vector<uint8_t> &buffer,
-      const api::dto::DescribeTopicPartitionsResponsePartition &partition) {
+template <> struct Serializer<api::dto::DescribeTopicPartitionResponse> {
+  static void
+  serialize(std::vector<uint8_t> &buffer,
+            const api::dto::DescribeTopicPartitionResponse &partition) {
 
     writer::write_be(buffer, partition.error_code);
     writer::write_be(buffer, partition.partition_index);
@@ -74,10 +73,9 @@ struct Serializer<api::dto::DescribeTopicPartitionsResponsePartition> {
   }
 };
 
-template <> struct Serializer<api::dto::DescribeTopicPartitionsResponseTopic> {
-  static void
-  serialize(std::vector<uint8_t> &buffer,
-            const api::dto::DescribeTopicPartitionsResponseTopic &topic) {
+template <> struct Serializer<api::dto::DescribeTopicResponse> {
+  static void serialize(std::vector<uint8_t> &buffer,
+                        const api::dto::DescribeTopicResponse &topic) {
 
     writer::write_be(buffer, topic.error_code);
     writer::write_compact_string(buffer, topic.name);
@@ -95,9 +93,9 @@ template <> struct Serializer<api::dto::DescribeTopicPartitionsResponseTopic> {
   }
 };
 
-template <> struct Serializer<api::dto::DescribeTopicPartitionsResponse> {
+template <> struct Serializer<api::dto::DescribeResponse> {
   static void serialize(std::vector<uint8_t> &buffer,
-                        const api::dto::DescribeTopicPartitionsResponse &res) {
+                        const api::dto::DescribeResponse &res) {
 
     writer::write_be(buffer, res.throttle_time_ms);
     writer::write_compact_array(buffer, res.topics);
@@ -111,11 +109,11 @@ template <> struct Serializer<api::dto::DescribeTopicPartitionsResponse> {
 
 namespace kafka {
 
-template <> struct Deserializer<api::dto::DescribeTopicPartitionsRequestTopic> {
-  static api::dto::DescribeTopicPartitionsRequestTopic
+template <> struct Deserializer<api::dto::DescribeTopicRequest> {
+  static api::dto::DescribeTopicRequest
   deserialize(std::span<const uint8_t> buffer, size_t &offset) {
 
-    api::dto::DescribeTopicPartitionsRequestTopic topic;
+    api::dto::DescribeTopicRequest topic;
 
     // You will need a reader::read_compact_string utility
     topic.name = reader::read_compact_string(buffer, offset);
@@ -127,14 +125,14 @@ template <> struct Deserializer<api::dto::DescribeTopicPartitionsRequestTopic> {
   }
 };
 
-template <> struct Deserializer<api::dto::DescribeTopicPartitionsRequest> {
-  static api::dto::DescribeTopicPartitionsRequest
-  deserialize(std::span<const uint8_t> buffer, size_t &offset) {
+template <> struct Deserializer<api::dto::DescribeRequest> {
+  static api::dto::DescribeRequest deserialize(std::span<const uint8_t> buffer,
+                                               size_t &offset) {
 
-    api::dto::DescribeTopicPartitionsRequest req;
+    api::dto::DescribeRequest req;
 
-    req.topics = reader::read_compact_array<
-        api::dto::DescribeTopicPartitionsRequestTopic>(buffer, offset);
+    req.topics = reader::read_compact_array<api::dto::DescribeTopicRequest>(
+        buffer, offset);
 
     // Skip the TAG_BUFFER (1 byte if empty)
     offset += 1;

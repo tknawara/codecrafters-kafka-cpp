@@ -3,6 +3,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -15,6 +16,13 @@ uint32_t read_unsigned_varint(std::span<const uint8_t> buffer, size_t &offset);
 int32_t read_signed_varint(std::span<const uint8_t> buffer, size_t &offset);
 std::string read_compact_string(std::span<const uint8_t> buffer,
                                 size_t &offset);
+std::optional<std::string>
+read_nullable_compact_string(std::span<const uint8_t> buffer, size_t &offset);
+std::optional<std::vector<uint8_t>>
+read_compact_bytes(std::span<const uint8_t> buffer, size_t &offset);
+uint32_t read_compact_array_length(std::span<const uint8_t> buffer,
+                                   size_t &offset);
+void skip_tag_buffer(std::span<const uint8_t> buffer, size_t &offset);
 
 template <typename T>
 T read_be(std::span<const uint8_t> buffer, size_t &offset) {
@@ -44,5 +52,4 @@ std::vector<T> read_compact_array(std::span<const uint8_t> buffer,
 
   return result;
 }
-
 }; // namespace kafka::reader

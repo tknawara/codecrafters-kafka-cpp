@@ -21,7 +21,7 @@ private:
       -> api::dto::Response;
   auto handle_fetch_partitions(const api::dto::Request &request)
       -> api::dto::Response;
-  bool supported_version(uint16_t version);
+  auto handle_produce(const api::dto::Request &request) -> api::dto::Response;
 };
 
 }; // namespace kafka

@@ -2,7 +2,9 @@
 
 #include <stdexcept>
 
-#include "api/dto/fetch_partitions.hpp"
+#include "api/dto/describe.hpp"
+#include "api/dto/fetch.hpp"
+#include "api/dto/produce.hpp"
 #include "api/registry.hpp"
 #include "storage/disk_reader.hpp"
 #include "storage/log_parser.hpp"
@@ -16,6 +18,8 @@ auto kafka::KafkaController::handle(const api::dto::Request &request)
     return handle_describe_topic_partitions(request);
   case api::registry::ApiKey::Fetch:
     return handle_fetch_partitions(request);
+  case api::registry::ApiKey::Produce:
+    return handle_produce(request);
   default:
     throw std::invalid_argument("unsupported api");
   }
@@ -41,15 +45,14 @@ auto kafka::KafkaController::handle_describe_topic_partitions(
   size_t offset = 0;
 
   auto req_body =
-      Deserializer<api::dto::DescribeTopicPartitionsRequest>::deserialize(
-          body_span, offset);
+      Deserializer<api::dto::DescribeRequest>::deserialize(body_span, offset);
 
-  api::dto::DescribeTopicPartitionsResponse res_body{};
+  api::dto::DescribeResponse res_body{};
   res_body.throttle_time_ms = 0;
   res_body.next_cursor = -1;
 
   for (const auto &req_topic : req_body.topics) {
-    api::dto::DescribeTopicPartitionsResponseTopic res_topic;
+    api::dto::DescribeTopicResponse res_topic;
     res_topic.name = req_topic.name;
 
     // 1. Query our new cache!
@@ -65,7 +68,7 @@ auto kafka::KafkaController::handle_describe_topic_partitions(
       auto partitions = cache_.get_partitions(res_topic.topic_id);
 
       for (const auto &p : partitions) {
-        api::dto::DescribeTopicPartitionsResponsePartition res_partition;
+        api::dto::DescribeTopicPartitionResponse res_partition;
         res_partition.error_code = 0;
         res_partition.partition_index = p.partition_id;
         res_partition.leader_id = p.leader;
@@ -126,14 +129,14 @@ auto kafka::KafkaController::handle_fetch_partitions(
     if (cached_topic) {
       for (const auto &req_partition : req_topic.partitions) {
         api::dto::FetchPartitionResponse res_partition{};
-        res_partition.partition_index = req_partition.partition_id;
+        res_partition.partition_index = req_partition.index;
         res_partition.error_code = 0;
         res_partition.high_watermark = 0;
         res_partition.last_stable_offset = 0;
         res_partition.log_start_offset = 0;
 
-        auto log_bytes = storage::read_log_file(cached_topic->name,
-                                                req_partition.partition_id);
+        auto log_bytes =
+            storage::read_log_file(cached_topic->name, req_partition.index);
         if (log_bytes) {
           res_partition.records = storage::extract_records_from_offset(
               *log_bytes, req_partition.fetch_offset);
@@ -160,4 +163,47 @@ auto kafka::KafkaController::handle_fetch_partitions(
   // 3. Let your Router pipeline handle the final serialization
   return api::dto::Response{.correlation_id = request.header.correlation_id,
                             .body = fetch_res};
+}
+
+auto kafka::KafkaController::handle_produce(const api::dto::Request &request)
+    -> api::dto::Response {
+  std::span<const uint8_t> body_span{request.body};
+  size_t offset = 0;
+
+  auto produce_req =
+      Deserializer<api::dto::ProduceRequest>::deserialize(body_span, offset);
+
+  api::dto::ProduceResponse produce_res{};
+  produce_res.throttle_time_ms = 0;
+
+  // 3. Iterate through requested topics
+  for (const auto &req_topic : produce_req.topics) {
+    api::dto::ProduceTopicResponse res_topic{};
+    res_topic.name = req_topic.name; // Echo the requested topic name
+
+    // 4. Iterate through requested partitions
+    for (const auto &req_partition : req_topic.partitions) {
+      api::dto::ProducePartitionResponse res_partition{};
+
+      res_partition.index = req_partition.index;
+      res_partition.error_code = 3; // UNKNOWN_TOPIC_OR_PARTITION
+
+      // Per the stage instructions, hardcode these to -1 for errors
+      res_partition.base_offset = -1;
+      res_partition.log_append_time_ms = -1;
+      res_partition.log_start_offset = -1;
+
+      // Note: record_errors vector is naturally empty,
+      // and error_message std::optional is naturally nullopt.
+
+      res_topic.partitions.push_back(res_partition);
+    }
+
+    produce_res.responses.push_back(res_topic);
+  }
+
+  // 5. Wrap it in the routing response and let the Router + Serializer handle
+  // the rest!
+  return api::dto::Response{.correlation_id = request.header.correlation_id,
+                            .body = produce_res};
 }

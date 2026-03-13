@@ -6,8 +6,8 @@
 #include <string>
 
 #include "api/dto/api_versions.hpp"
-#include "api/dto/describe_topic_partitions.hpp"
-#include "api/dto/fetch_partitions.hpp"
+#include "api/dto/describe.hpp"
+#include "api/dto/fetch.hpp"
 #include "api/registry.hpp"
 #include "core/hexdump.hpp"
 
@@ -26,7 +26,7 @@ kafka::api::dto::Response kafka::api::middleware::version_validator_middleware(
       };
     }
     case api::registry::ApiKey::DescribeTopicParititons: {
-      api::dto::DescribeTopicPartitionsResponse res_body{};
+      api::dto::DescribeResponse res_body{};
       return api::dto::Response{
           .correlation_id = request.header.correlation_id,
           .body = res_body,
@@ -53,7 +53,6 @@ constexpr auto color_cyan = "\033[36m";    // For incoming requests
 constexpr auto color_green = "\033[32m";   // For successful responses
 constexpr auto color_yellow = "\033[33m";  // For timing
 constexpr auto color_magenta = "\033[35m"; // For the middleware tag
-constexpr auto color_dim = "\033[2m";
 
 static constexpr std::string get_api_name(kafka::api::registry::ApiKey key) {
   switch (key) {

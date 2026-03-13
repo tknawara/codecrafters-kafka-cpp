@@ -3,6 +3,7 @@
 #include <bit>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -13,6 +14,10 @@ namespace kafka::writer {
 void write_unsigned_varint(std::vector<uint8_t> &buffer, uint32_t value);
 void write_compact_string(std::vector<uint8_t> &buffer,
                           const std::string &text);
+
+void write_nullable_compact_string(std::vector<uint8_t> &buffer,
+                                   const std::optional<std::string> &value);
+void write_empty_tag_buffer(std::vector<uint8_t> &buffer);
 
 template <typename T> void write_be(std::vector<uint8_t> &buffer, T value) {
   T swapped_value = std::byteswap(value);

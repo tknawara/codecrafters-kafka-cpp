@@ -1,22 +1,21 @@
 #pragma once
 
-#include "api/dto/describe_topic_partitions.hpp"
-#include "api/dto/fetch_partitions.hpp"
+#include "api/dto/describe.hpp"
+#include "api/dto/fetch.hpp"
+#include "api/dto/produce.hpp"
 
 #include <inttypes.h>
 #include <variant>
 #include <vector>
 
 #include "api_versions.hpp"
-#include "core/error.hpp"
 #include "core/serializable.hpp"
 #include "core/writer.hpp"
 
 namespace kafka::api::dto {
 
-using ResponseBody =
-    std::variant<ApiVersionsResponse, DescribeTopicPartitionsResponse,
-                 FetchResponse>;
+using ResponseBody = std::variant<ApiVersionsResponse, DescribeResponse,
+                                  FetchResponse, ProduceResponse>;
 
 struct Response {
   uint32_t correlation_id;

@@ -12,7 +12,7 @@
 #include <thread>
 #include <unistd.h>
 
-#include "api/handler/client_session.hpp"
+#include "api/client_session.hpp"
 #include "api/middleware.hpp"
 #include "api/router.hpp"
 #include "core/hexdump.hpp"
