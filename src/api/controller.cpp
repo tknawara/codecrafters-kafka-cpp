@@ -8,6 +8,7 @@
 #include "api/registry.hpp"
 #include "storage/disk_reader.hpp"
 #include "storage/log_parser.hpp"
+#include "storage/log_writer.hpp"
 
 auto kafka::KafkaController::handle(const api::dto::Request &request)
     -> api::dto::Response {
@@ -212,6 +213,10 @@ auto kafka::KafkaController::handle_produce(const api::dto::Request &request)
           res_partition.base_offset = 0;
           res_partition.log_append_time_ms = -1;
           res_partition.log_start_offset = 0;
+          if (req_partition.records.has_value()) {
+            storage::append_to_log(req_topic.name, req_partition.index,
+                                   req_partition.records.value());
+          }
         } else {
           // Topic exists, but the requested partition index does not
           res_partition.error_code = 3;
