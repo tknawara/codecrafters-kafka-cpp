@@ -56,7 +56,7 @@ auto kafka::KafkaController::handle_describe_topic_partitions(
     res_topic.name = req_topic.name;
 
     // 1. Query our new cache!
-    auto topic_opt = cache_.get_topic(req_topic.name);
+    auto topic_opt = cache_.get_topic_by_name(req_topic.name);
 
     if (topic_opt) {
       // --- TOPIC EXISTS (Stage 7 Logic) ---
@@ -176,25 +176,50 @@ auto kafka::KafkaController::handle_produce(const api::dto::Request &request)
   api::dto::ProduceResponse produce_res{};
   produce_res.throttle_time_ms = 0;
 
-  // 3. Iterate through requested topics
   for (const auto &req_topic : produce_req.topics) {
     api::dto::ProduceTopicResponse res_topic{};
-    res_topic.name = req_topic.name; // Echo the requested topic name
+    res_topic.name = req_topic.name;
 
-    // 4. Iterate through requested partitions
+    // 1. Topic Validation: Query the cache you already built!
+    auto cached_topic = cache_.get_topic_by_name(req_topic.name);
+
     for (const auto &req_partition : req_topic.partitions) {
       api::dto::ProducePartitionResponse res_partition{};
-
       res_partition.index = req_partition.index;
-      res_partition.error_code = 3; // UNKNOWN_TOPIC_OR_PARTITION
 
-      // Per the stage instructions, hardcode these to -1 for errors
-      res_partition.base_offset = -1;
-      res_partition.log_append_time_ms = -1;
-      res_partition.log_start_offset = -1;
+      if (!cached_topic) {
+        // Topic does not exist
+        res_partition.error_code = 3;
+        res_partition.base_offset = -1;
+        res_partition.log_append_time_ms = -1;
+        res_partition.log_start_offset = -1;
+      } else {
+        // 2. Partition Validation: Check if the index exists in the cached
+        // topic
+        bool partition_exists = false;
 
-      // Note: record_errors vector is naturally empty,
-      // and error_message std::optional is naturally nullopt.
+        // Assuming your cached topic struct holds a list of partitions
+        for (const auto &p : cache_.get_partitions(cached_topic->topic_id)) {
+          if (p.partition_id == req_partition.index) {
+            partition_exists = true;
+            break;
+          }
+        }
+
+        if (partition_exists) {
+          // Success! Both Topic and Partition are valid.
+          res_partition.error_code = 0; // NO_ERROR
+          res_partition.base_offset = 0;
+          res_partition.log_append_time_ms = -1;
+          res_partition.log_start_offset = 0;
+        } else {
+          // Topic exists, but the requested partition index does not
+          res_partition.error_code = 3;
+          res_partition.base_offset = -1;
+          res_partition.log_append_time_ms = -1;
+          res_partition.log_start_offset = -1;
+        }
+      }
 
       res_topic.partitions.push_back(res_partition);
     }
@@ -202,8 +227,6 @@ auto kafka::KafkaController::handle_produce(const api::dto::Request &request)
     produce_res.responses.push_back(res_topic);
   }
 
-  // 5. Wrap it in the routing response and let the Router + Serializer handle
-  // the rest!
   return api::dto::Response{.correlation_id = request.header.correlation_id,
                             .body = produce_res};
 }

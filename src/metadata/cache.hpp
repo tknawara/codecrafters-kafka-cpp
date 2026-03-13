@@ -33,7 +33,8 @@ private:
 public:
   size_t num_of_topics() const { return topics_by_name.size(); }
 
-  std::optional<dto::TopicRecord> get_topic(const std::string &name) const {
+  std::optional<dto::TopicRecord>
+  get_topic_by_name(const std::string &name) const {
     if (auto it = topics_by_name.find(name); it != topics_by_name.end()) {
       return it->second;
     }
